@@ -1,0 +1,7 @@
+Date,Type,GrossUSD,TaxUSD,Description
+2026-03-15,Dividend,1000.00,150.00,Apple Inc. Quarterly Dividend
+2026-03-20,Stock Grant,2500.00,375.00,RSU Vesting - 100 units @ $25
+2026-04-10,Dividend,750.00,112.50,Microsoft Corp Dividend
+2026-04-25,Stock Grant,1500.00,225.00,ESPP Purchase - 50 shares @ $30
+2026-05-05,Dividend,500.00,75.00,Google LLC Dividend Distribution
+2026-05-15,Stock Grant,3000.00,450.00,RSU Vesting - 75 units @ $40

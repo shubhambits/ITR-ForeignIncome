@@ -1,0 +1,41 @@
+name: Update Market Data
+
+on:
+  schedule:
+    # Run at 00:00 UTC and 12:00 UTC every day
+    - cron: '0 0 * * *'
+    - cron: '0 12 * * *'
+  workflow_dispatch:  # Allow manual trigger
+
+jobs:
+  fetch-data:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Fetch SBI FX rates
+        run: python scripts/fetch_sbi_rates.py
+
+      - name: Fetch stock prices
+        env:
+          ALPHA_VANTAGE_API_KEY: ${{ secrets.ALPHA_VANTAGE_API_KEY }}
+        run: python scripts/fetch_stock_prices.py
+      
+      - name: Commit changes
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "Market Data Bot"
+          git add public/data/
+          if [ -n "$(git status --porcelain)" ]; then
+            git commit -m "chore: update market data - $(date -u +'%Y-%m-%d %H:%M:%S UTC')"
+            git push
+          else
+            echo "No changes to commit"
+          fi

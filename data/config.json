@@ -1,0 +1,50 @@
+{
+  "stocks": {
+    "MSFT": {
+      "name": "Microsoft Corporation",
+      "address": "One Microsoft Way, Redmond, Washington",
+      "zip": "98052",
+      "country": "2-UNITED STATES OF AMERICA",
+      "nature": "Listed Company"
+    },
+    "AAPL": {
+      "name": "Apple Inc.",
+      "address": "One Apple Park Way, Cupertino, California",
+      "zip": "95014",
+      "country": "2-UNITED STATES OF AMERICA",
+      "nature": "Listed Company"
+    },
+    "AMZN": {
+      "name": "Amazon.com, Inc.",
+      "address": "410 Terry Avenue North, Seattle, Washington",
+      "zip": "98109",
+      "country": "2-UNITED STATES OF AMERICA",
+      "nature": "Listed Company"
+    },
+    "GOOGL": {
+      "name": "Alphabet Inc.",
+      "address": "1600 Amphitheatre Parkway, Mountain View, California",
+      "zip": "94043",
+      "country": "2-UNITED STATES OF AMERICA",
+      "nature": "Listed Company"
+    },
+    "ABNB": {
+      "name": "Airbnb, Inc.",
+      "address": "888 Brannan Street, San Francisco, California",
+      "zip": "94103",
+      "country": "2-UNITED STATES OF AMERICA",
+      "nature": "Listed Company"
+    },
+    "ORCL": {
+      "name": "Oracle Corporation",
+      "address": "2300 Oracle Way, Austin, Texas",
+      "zip": "78741",
+      "country": "2-UNITED STATES OF AMERICA",
+      "nature": "Listed Company"
+    }
+  },
+  "updateSchedule": {
+    "frequency": "twice-daily",
+    "times": ["00:00 UTC", "12:00 UTC"]
+  }
+}
