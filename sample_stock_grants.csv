@@ -1,4 +1,4 @@
-Date,Stock,Quantity,Company,CompanyAddress,CompanyZIP,GrossUSD,ProceedsUSD,Description
-2026-01-15,AAPL,100,Apple Inc.,1 Apple Park Way,95014,5000.00,0.00,RSU Vesting
-2026-02-20,MSFT,50,Microsoft Corporation,One Microsoft Way,98052,3750.00,0.00,Stock Grant
-2026-03-10,GOOGL,75,Alphabet Inc.,1600 Amphitheatre Parkway,94043,7500.00,0.00,RSU Vesting
+Date,Stock,Quantity
+2024-01-15,AAPL,100
+2024-02-20,MSFT,50
+2024-03-10,GOOGL,75

@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+import csv
 import json
 import os
 import time
@@ -17,7 +18,6 @@ ALPHA_VANTAGE_BASE = 'https://www.alphavantage.co/query'
 def load_dotenv(env_path: Path) -> dict:
     if not env_path.exists():
         return {}
-
     env_data = {}
     for line in env_path.read_text().splitlines():
         stripped = line.strip()
@@ -39,15 +39,61 @@ load_local_env()
 API_KEY = os.environ.get('ALPHA_VANTAGE_API_KEY', 'demo')
 
 
-def fetch_url(url: str) -> str:
-    with urllib.request.urlopen(url) as response:
-        return response.read().decode('utf-8')
-
-
 def load_config() -> dict:
     if not CONFIG_FILE.exists():
         raise FileNotFoundError(f'Config file not found: {CONFIG_FILE}')
     return json.loads(CONFIG_FILE.read_text())
+
+
+def save_stock(symbol: str, prices: list):
+    PUBLIC_DATA_DIR.mkdir(parents=True, exist_ok=True)
+    STOCKS_DIR.mkdir(parents=True, exist_ok=True)
+
+    file_path = STOCKS_DIR / f'{symbol}.csv'
+    with open(file_path, 'w', newline='') as f:
+        writer = csv.DictWriter(f, fieldnames=['date', 'open', 'high', 'low', 'close', 'dividend'])
+        writer.writeheader()
+        writer.writerows(prices)
+
+    return file_path
+
+
+# ---------------------------------------------------------------------------
+# Yahoo Finance (primary source, no API key needed)
+# ---------------------------------------------------------------------------
+
+def fetch_from_yahoo(symbol: str) -> list:
+    import yfinance as yf
+
+    ticker = yf.Ticker(symbol)
+    df = ticker.history(period='max', auto_adjust=False)
+    if df.empty:
+        raise ValueError(f'Yahoo Finance returned no data for {symbol}')
+
+    prices = []
+    for date_idx, row in df.iterrows():
+        date_str = date_idx.strftime('%Y-%m-%d')
+        dividend = float(row.get('Dividends', 0.0))
+        prices.append({
+            'date': date_str,
+            'open': round(float(row['Open']), 4),
+            'high': round(float(row['High']), 4),
+            'low': round(float(row['Low']), 4),
+            'close': round(float(row['Close']), 4),
+            'dividend': dividend
+        })
+
+    prices.sort(key=lambda item: item['date'])
+    return prices
+
+
+# ---------------------------------------------------------------------------
+# Alpha Vantage (fallback if Yahoo fails)
+# ---------------------------------------------------------------------------
+
+def fetch_url(url: str) -> str:
+    with urllib.request.urlopen(url) as response:
+        return response.read().decode('utf-8')
 
 
 def parse_daily_series(data: dict) -> list:
@@ -68,23 +114,9 @@ def parse_daily_series(data: dict) -> list:
     return sorted(prices, key=lambda item: item['date'])
 
 
-def save_stock(symbol: str, prices: list):
-    import csv
-    PUBLIC_DATA_DIR.mkdir(parents=True, exist_ok=True)
-    STOCKS_DIR.mkdir(parents=True, exist_ok=True)
-    
-    file_path = STOCKS_DIR / f'{symbol}.csv'
-    with open(file_path, 'w', newline='') as f:
-        writer = csv.DictWriter(f, fieldnames=['date', 'open', 'high', 'low', 'close', 'dividend'])
-        writer.writeheader()
-        writer.writerows(prices)
-    
-    return file_path
-
-
-def fetch_stock(symbol: str) -> list:
+def fetch_from_alpha_vantage(symbol: str) -> list:
     if API_KEY == 'demo':
-        raise RuntimeError('ALPHA_VANTAGE_API_KEY environment variable is not set')
+        raise RuntimeError('ALPHA_VANTAGE_API_KEY not set')
     url = f'{ALPHA_VANTAGE_BASE}?function=TIME_SERIES_DAILY_ADJUSTED&symbol={symbol}&outputsize=full&apikey={API_KEY}'
     raw = fetch_url(url)
     data = json.loads(raw)
@@ -95,11 +127,30 @@ def fetch_stock(symbol: str) -> list:
     return parse_daily_series(data)
 
 
-def main():
-    if API_KEY == 'demo':
-        print('⚠ ALPHA_VANTAGE_API_KEY is not set; skipping stock price fetch.')
-        return
+# ---------------------------------------------------------------------------
+# Main
+# ---------------------------------------------------------------------------
 
+def fetch_stock(symbol: str) -> list:
+    try:
+        print(f'  Trying Yahoo Finance for {symbol}...')
+        prices = fetch_from_yahoo(symbol)
+        print(f'  ✓ Yahoo Finance returned {len(prices)} rows')
+        return prices
+    except Exception as e:
+        print(f'  ⚠ Yahoo Finance failed: {e}')
+
+    try:
+        print(f'  Falling back to Alpha Vantage for {symbol}...')
+        prices = fetch_from_alpha_vantage(symbol)
+        print(f'  ✓ Alpha Vantage returned {len(prices)} rows')
+        return prices
+    except Exception as e:
+        print(f'  ⚠ Alpha Vantage failed: {e}')
+        raise RuntimeError(f'All data sources failed for {symbol}')
+
+
+def main():
     config = load_config()
     stocks = config.get('stocks', {})
     if not stocks:
@@ -107,8 +158,15 @@ def main():
 
     for idx, symbol in enumerate(stocks.keys()):
         print(f'Fetching prices for {symbol}...')
-        prices = fetch_stock(symbol)
-        file_path = save_stock(symbol, prices)
-        print(f'✓ Saved {len(prices)} prices for {symbol} to {file_path}')
+        try:
+            prices = fetch_stock(symbol)
+            file_path = save_stock(symbol, prices)
+            print(f'✓ Saved {len(prices)} prices for {symbol} to {file_path}')
+        except Exception as e:
+            print(f'✗ Failed to fetch {symbol}: {e}')
         if idx < len(stocks) - 1:
-            time.sleep(12)
+            time.sleep(2)
+
+
+if __name__ == '__main__':
+    main()

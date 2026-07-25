@@ -42,9 +42,5 @@
       "country": "2-UNITED STATES OF AMERICA",
       "nature": "Listed Company"
     }
-  },
-  "updateSchedule": {
-    "frequency": "twice-daily",
-    "times": ["00:00 UTC", "12:00 UTC"]
   }
 }

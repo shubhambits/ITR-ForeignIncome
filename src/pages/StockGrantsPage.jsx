@@ -3,14 +3,15 @@ import StockGrantsUpload from '../components/StockGrantsUpload'
 import StockGrantsTable from '../components/StockGrantsTable'
 import ScheduleFAOutput from '../components/ScheduleFAOutput'
 import { parseUploadedCSV, fetchSBIRates } from '../utils/fxRateUtils'
-import { fetchHistoricalStockPrices, formatStockGrantsForScheduleFA } from '../utils/stockPriceUtils'
+import { fetchHistoricalStockPrices, getClosingPrice, formatStockGrantsForScheduleFA } from '../utils/stockPriceUtils'
+import stockConfig from '../../data/config.json'
 
 export default function StockGrantsPage() {
   const [grants, setGrants] = useState([])
   const [scheduleData, setScheduleData] = useState([])
   const [error, setError] = useState(null)
   const [isProcessing, setIsProcessing] = useState(false)
-  const [periodEndDate, setPeriodEndDate] = useState('2025-12-31')
+  const periodEndDate = '2025-12-31'
 
   const handleUpload = async (payload, mode) => {
     setError(null)
@@ -35,7 +36,33 @@ export default function StockGrantsPage() {
         }
       }
 
-      setGrants(prev => [...prev, ...parsed])
+      const enriched = await Promise.all(parsed.map(async (grant) => {
+        const info = stockConfig.stocks?.[grant.Stock]
+        const enrichedGrant = {
+          ...grant,
+          Company: grant.Company || info?.name || '',
+          CompanyAddress: grant.CompanyAddress || info?.address || '',
+          CompanyZIP: grant.CompanyZIP || info?.zip || ''
+        }
+
+        if (grant.Stock && grant.Date && grant.Quantity) {
+          try {
+            const stockResult = await fetchHistoricalStockPrices(grant.Stock)
+            if (stockResult?.prices) {
+              const { closingPrice } = getClosingPrice(stockResult.prices, grant.Date)
+              if (closingPrice) {
+                enrichedGrant.GrossUSD = (parseFloat(grant.Quantity) * closingPrice).toFixed(2)
+              }
+            }
+          } catch {
+            // GrossUSD will remain empty if price fetch fails
+          }
+        }
+
+        return enrichedGrant
+      }))
+
+      setGrants(prev => [...prev, ...enriched])
     } catch (err) {
       setError(err.message)
     }
@@ -112,21 +139,13 @@ export default function StockGrantsPage() {
 
         {grants.length > 0 && (
           <div className="mt-6 p-4 bg-gray-50 border border-gray-200 rounded-xl">
-            <div className="grid gap-4 md:grid-cols-2 items-end">
-              <label className="block">
-                <span className="text-sm font-medium text-gray-700">Reporting period end date</span>
-                <input
-                  type="date"
-                  value={periodEndDate}
-                  onChange={(e) => setPeriodEndDate(e.target.value)}
-                  className="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm"
-                />
-              </label>
+            <div className="flex items-center justify-between">
+              <p className="text-sm text-gray-600">Reporting period end date: <strong>31st December 2025</strong></p>
               <button
                 type="button"
                 onClick={generateSchedule}
                 disabled={isProcessing}
-                className="w-full md:w-auto bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white rounded-lg px-6 py-3 font-semibold shadow-sm text-sm"
+                className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white rounded-lg px-6 py-3 font-semibold shadow-sm text-sm"
               >
                 {isProcessing ? 'Processing...' : '⚡ Generate Schedule FA Report'}
               </button>

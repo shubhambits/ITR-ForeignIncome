@@ -148,8 +148,8 @@ export default function ScheduleFAOutput({ data, isLoading }) {
                             </>
                           )}
                           <Info label="Initial Price (USD)" value={`$${row['Initial Price USD']}`} />
-                          <Info label="Peak Price (USD)" value={`$${row['Peak Price USD']}`} />
-                          <Info label="Closing Price (USD)" value={`$${row['Closing Price USD']}`} />
+                          <Info label="Peak Price (USD)" value={`$${row['Peak Price USD']} on ${row['Peak Date']}`} />
+                          <Info label="Closing Price (USD)" value={`$${row['Closing Price USD']} on ${row['Closing Date']}`} />
                           <Info label="Initial Value (INR)" value={`₹${parseInt(row['Initial value of the investment'], 10).toLocaleString('en-IN')}`} />
                           <Info label="Peak Value (INR)" value={`₹${parseInt(row['Peak value of investment during the Period'], 10).toLocaleString('en-IN')}`} />
                           <Info label="Closing Balance (INR)" value={`₹${parseInt(row['Closing balance'], 10).toLocaleString('en-IN')}`} />

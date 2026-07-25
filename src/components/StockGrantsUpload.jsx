@@ -128,7 +128,7 @@ export default function StockGrantsUpload({ onUpload, isLoading }) {
 
       try {
         const stockResult = await fetchHistoricalStockPrices(Stock)
-        const closingPrice = getClosingPrice(stockResult.prices, Date)
+        const { closingPrice } = getClosingPrice(stockResult.prices, Date)
         if (!closingPrice) {
           throw new Error(`No closing price found for ${Stock} on or before ${Date}`)
         }
@@ -154,7 +154,7 @@ export default function StockGrantsUpload({ onUpload, isLoading }) {
 
       try {
         const stockResult = await fetchHistoricalStockPrices(Stock)
-        const closingPrice = getClosingPrice(stockResult.prices, SaleDate)
+        const { closingPrice } = getClosingPrice(stockResult.prices, SaleDate)
         if (!closingPrice) {
           throw new Error(`No closing price found for ${Stock} on or before ${SaleDate}`)
         }
@@ -188,7 +188,7 @@ export default function StockGrantsUpload({ onUpload, isLoading }) {
 
       try {
         const stockResult = await fetchHistoricalStockPrices(Stock)
-        const closingPrice = getClosingPrice(stockResult.prices, Date)
+        const { closingPrice } = getClosingPrice(stockResult.prices, Date)
         if (!closingPrice) {
           throw new Error(`No closing price found for ${Stock} on or before ${Date}`)
         }
@@ -265,7 +265,7 @@ export default function StockGrantsUpload({ onUpload, isLoading }) {
           />
           <div className="text-4xl mb-3">📤</div>
           <h3 className="text-lg font-semibold text-gray-900">Drag & drop your stock grants CSV here</h3>
-          <p className="text-sm text-gray-600 mt-2">Expected headers: Date, Stock, Quantity, Company, CompanyAddress, CompanyZIP, GrossUSD, ProceedsUSD</p>
+          <p className="text-sm text-gray-600 mt-2">Required columns: Date, Stock, Quantity — company details and values are auto-derived</p>
         </div>
       ) : (
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">

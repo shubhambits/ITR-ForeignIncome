@@ -83,7 +83,8 @@ async function fetchFromAlphaVantageOnline(symbol, apiKey = 'demo') {
     open: parseFloat(values['1. open']),
     high: parseFloat(values['2. high']),
     low: parseFloat(values['3. low']),
-    close: parseFloat(values['4. close'])
+    close: parseFloat(values['4. close']),
+    dividend: 0
   }))
   .sort((a, b) => new Date(a.date) - new Date(b.date))
 
@@ -115,28 +116,34 @@ export function getPeakValue(prices, fromDate, toDate) {
   const from = new Date(fromDate)
   const to = new Date(toDate)
   let peak = 0
+  let peakDate = null
 
   for (const price of prices) {
     const priceDate = new Date(price.date)
     if (priceDate >= from && priceDate <= to) {
-      peak = Math.max(peak, price.high)
+      if (price.high > peak) {
+        peak = price.high
+        peakDate = price.date
+      }
     }
   }
 
-  return peak
+  return { peak, peakDate }
 }
 
 export function getClosingPrice(prices, onDate) {
   const targetDate = new Date(onDate)
   let closingPrice = null
+  let closingDate = null
   for (let i = prices.length - 1; i >= 0; i--) {
     const priceDate = new Date(prices[i].date)
     if (priceDate <= targetDate) {
       closingPrice = prices[i].close
+      closingDate = prices[i].date
       break
     }
   }
-  return closingPrice
+  return { closingPrice, closingDate }
 }
 
 import stockConfig from '../../data/config.json'
@@ -217,8 +224,8 @@ export function formatStockGrantsForScheduleFA(grants, prices, periodEndDate, ra
 
     const periodStart = new Date(grant.Date)
     const periodEnd = new Date(periodEndDate)
-    const peakUSD = getPeakValue(prices, periodStart, periodEnd)
-    const closingUSD = getClosingPrice(prices, periodEndDate)
+    const { peak: peakUSD, peakDate } = getPeakValue(prices, periodStart, periodEnd)
+    const { closingPrice: closingUSD, closingDate } = getClosingPrice(prices, periodEndDate)
 
     // SBI TT Buy Rate based on GRANT date -> last working day of previous month
     const matchedGrantRateObj = rateMap ? findMatchingRate(grant.Date, rateMap) : null
@@ -232,17 +239,12 @@ export function formatStockGrantsForScheduleFA(grants, prices, periodEndDate, ra
     // Calculate dividend credited amount based on quantity & cached dividend data
     const divResult = calculateTotalDividendsCredited(prices, grant, periodEndDate, rateMap)
     
-    // Prioritize computed dividend breakdown for Gross Credited; fallback to manual GrossUSD if no breakdown exists
-    const manualGrossUSD = parseFloat(grant.GrossUSD) || 0
     let grossINR = '0'
     let finalGrossUSD = 0
 
     if (divResult.breakdown && divResult.breakdown.length > 0) {
       grossINR = divResult.grossINR.toString()
       finalGrossUSD = divResult.grossUSD
-    } else if (manualGrossUSD > 0) {
-      grossINR = Math.round(manualGrossUSD * grantSbiRate).toString()
-      finalGrossUSD = manualGrossUSD
     }
 
     // Sale Proceeds calculation using SALE date rate if sold
@@ -282,7 +284,9 @@ export function formatStockGrantsForScheduleFA(grants, prices, periodEndDate, ra
       'Quantity': grant.Quantity,
       'Initial Price USD': initialValueUSD ? initialValueUSD.toFixed(4) : '0.0000',
       'Peak Price USD': peakUSD ? peakUSD.toFixed(4) : '0.0000',
+      'Peak Date': peakDate || 'N/A',
       'Closing Price USD': closingUSD ? closingUSD.toFixed(4) : '0.0000',
+      'Closing Date': closingDate || 'N/A',
       'SBI Rate': grantSbiRate.toFixed(4),
       'SBI Rate Date': grantRateDate,
       'Sale Date': formatDateDDMMYYYY(grant.SaleDate) || 'N/A',
